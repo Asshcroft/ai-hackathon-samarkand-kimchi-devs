@@ -1,1 +1,0 @@
-# ai-hackathon-samarkand-kimchi-devs
