@@ -1,0 +1,8 @@
+{
+  "name": "IPA Terminal",
+  "description": "A versatile AI assistant specializing in engineering queries and emergency response.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "prompt": ""
+}
