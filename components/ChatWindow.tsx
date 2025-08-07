@@ -83,7 +83,7 @@ const ChatWindow: React.FC = () => {
     });
   }, []);
 
-  const handleSaveLastResponse = useCallback(() => {
+  const handleSaveLastResponse = useCallback(async () => {
     const lastBotMessage = [...messages].reverse().find(msg => msg.sender === Sender.Bot);
     if (!lastBotMessage) {
       console.warn("No bot message found to save.");
@@ -93,13 +93,22 @@ const ChatWindow: React.FC = () => {
     const filename = window.prompt("Enter a filename to save the content:", `protocol_${Date.now()}.md`);
 
     if (filename && filename.trim()) {
-      db.saveArticle(filename.trim(), lastBotMessage.text);
-      const confirmationMessage: Message = {
-        id: (Date.now() + 2).toString(),
-        text: `SYSTEM: Copied last response to database as "${filename.trim()}".`,
-        sender: Sender.Bot,
-      };
-      setMessages(prev => [...prev, confirmationMessage]);
+      try {
+        await db.saveArticleCombined(filename.trim(), lastBotMessage.text);
+        const confirmationMessage: Message = {
+          id: (Date.now() + 2).toString(),
+          text: `SYSTEM: Article saved to database and file as "${filename.trim()}".`,
+          sender: Sender.Bot,
+        };
+        setMessages(prev => [...prev, confirmationMessage]);
+      } catch (error) {
+        const errorMessage: Message = {
+          id: (Date.now() + 2).toString(),
+          text: `SYSTEM ERROR: Failed to save article: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          sender: Sender.Bot,
+        };
+        setMessages(prev => [...prev, errorMessage]);
+      }
     }
   }, [messages]);
 
@@ -107,8 +116,31 @@ const ChatWindow: React.FC = () => {
     setIsReadModalOpen(true);
   }, []);
 
-  const handleSelectArticle = useCallback((filename: string) => {
-    const content = db.getArticle(filename);
+  const handleDeleteArticle = useCallback(async () => {
+    const filename = window.prompt("Enter the filename to delete:", "");
+    
+    if (filename && filename.trim()) {
+      try {
+        await db.deleteArticleFromFile(filename.trim());
+        const confirmationMessage: Message = {
+          id: (Date.now() + 2).toString(),
+          text: `SYSTEM: Article "${filename.trim()}" deleted from database.`,
+          sender: Sender.Bot,
+        };
+        setMessages(prev => [...prev, confirmationMessage]);
+      } catch (error) {
+        const errorMessage: Message = {
+          id: (Date.now() + 2).toString(),
+          text: `SYSTEM ERROR: Failed to delete article: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          sender: Sender.Bot,
+        };
+        setMessages(prev => [...prev, errorMessage]);
+      }
+    }
+  }, []);
+
+  const handleSelectArticle = useCallback(async (filename: string) => {
+    const content = await db.getArticleCombined(filename);
     const text = content !== null 
         ? `--- START OF FILE: ${filename} ---\n\n${content}\n\n--- END OF FILE ---`
         : `SYSTEM ERROR: File not found in database: "${filename}"`;
@@ -142,11 +174,11 @@ const ChatWindow: React.FC = () => {
     setMessages((prevMessages) => [...prevMessages, userMessage]);
     
     // Moved declaration before use
-    const allArticles = db.listArticles();
+    const allArticles = await db.listArticlesCombined();
 
     // Client-side optimization: if user types an exact filename, read it directly.
     if (!imageFile && allArticles.includes(text.trim())) {
-      const articleContent = db.getArticle(text.trim());
+      const articleContent = await db.getArticleCombined(text.trim());
       const fileText = `--- START OF FILE: ${text.trim()} ---\n\n${articleContent || `ERROR: Could not read ${text.trim()}`}\n\n--- END OF FILE ---`;
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -169,7 +201,7 @@ const ChatWindow: React.FC = () => {
         if (editMatch) {
           const topic = editMatch[1];
           const inferredFilename = topic.trim().replace(/ /g, '_') + '.md';
-          const content = db.getArticle(inferredFilename);
+          const content = await db.getArticleCombined(inferredFilename);
           if (content) {
             promptForGemini = `[EXISTING ARTICLE: '${inferredFilename}']\n\n${content}\n\n[USER QUESTION: '${text}']`;
           }
@@ -219,7 +251,22 @@ const ChatWindow: React.FC = () => {
         case 'CREATE_ARTICLE':
         case 'UPDATE_ARTICLE':
           if (actionData.filename && actionData.content) {
-            db.saveArticle(actionData.filename, actionData.content);
+            try {
+              await db.saveArticleCombined(actionData.filename, actionData.content);
+              const saveMessage: Message = {
+                id: (Date.now() + 4).toString(),
+                text: `SYSTEM: Article "${actionData.filename}" saved to database and file.`,
+                sender: Sender.Bot,
+              };
+              setMessages(prev => [...prev, saveMessage]);
+            } catch (error) {
+              const errorMessage: Message = {
+                id: (Date.now() + 4).toString(),
+                text: `SYSTEM ERROR: Failed to save article: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                sender: Sender.Bot,
+              };
+              setMessages(prev => [...prev, errorMessage]);
+            }
           }
           break;
         case 'LIST_ARTICLES':
@@ -288,7 +335,7 @@ const ChatWindow: React.FC = () => {
         isOpen={isReadModalOpen}
         onClose={() => setIsReadModalOpen(false)}
         onSelectArticle={handleSelectArticle}
-        articles={db.listArticles()}
+        articles={[]} // Will be populated dynamically
       />
       <MessageList messages={messages} isLoading={isLoading} />
       <ChatInput 
@@ -297,6 +344,7 @@ const ChatWindow: React.FC = () => {
         messages={messages}
         onSaveLastResponse={handleSaveLastResponse}
         onReadFile={handleOpenReadModal}
+        onDeleteArticle={handleDeleteArticle}
         isTtsEnabled={isTtsEnabled}
         onToggleTts={handleToggleTts}
       />

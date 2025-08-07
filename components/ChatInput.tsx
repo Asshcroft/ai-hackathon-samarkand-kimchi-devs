@@ -10,11 +10,12 @@ interface ChatInputProps {
   messages: Message[];
   onSaveLastResponse: () => void;
   onReadFile: () => void;
+  onDeleteArticle: () => void;
   isTtsEnabled: boolean;
   onToggleTts: () => void;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, messages, onSaveLastResponse, onReadFile, isTtsEnabled, onToggleTts }) => {
+const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, messages, onSaveLastResponse, onReadFile, onDeleteArticle, isTtsEnabled, onToggleTts }) => {
   const [text, setText] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -69,6 +70,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, message
   const lastBotMessage = [...messages].reverse().find(m => m.sender === Sender.Bot);
   const canSave = !isLoading && !!lastBotMessage;
   const canRead = !isLoading && db.listArticles().length > 0;
+  const canDelete = !isLoading;
 
   return (
     <div className="p-2 bg-black border-t-2 border-orange-400/50 flex-shrink-0">
@@ -155,6 +157,21 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, message
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+            </svg>
+          </button>
+          <button
+            onClick={() => {
+              soundService.playClickSound();
+              onDeleteArticle();
+            }}
+            onMouseEnter={() => soundService.playHoverSound()}
+            disabled={!canDelete}
+            className="p-2 rounded-md text-orange-400 hover:bg-orange-700/50 disabled:text-orange-900/80 disabled:cursor-not-allowed transition-colors text-glow"
+            title="Delete article from database"
+            aria-label="Delete article from database"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
             </svg>
           </button>
           <button
