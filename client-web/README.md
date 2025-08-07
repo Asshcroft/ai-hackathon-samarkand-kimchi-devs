@@ -111,3 +111,4 @@ client-web/
 ## License
 
 This project is part of the IPA AI Assistant system.
+

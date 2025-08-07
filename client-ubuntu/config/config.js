@@ -55,3 +55,4 @@ export const getServerUrl = () => {
   const { host, port, protocol } = config.server;
   return `${protocol}://${host}:${port}`;
 };
+

@@ -4,7 +4,6 @@ import { Sender } from '../types';
 import MessageList from './MessageList';
 import ChatInput from './ChatInput';
 import { socketService } from '../services/socketService';
-import { apiService } from '../services/apiService';
 import ArticleListModal from './ArticleListModal';
 import ConnectionStatus from './ConnectionStatus';
 
@@ -87,6 +86,24 @@ const ChatWindow: React.FC = () => {
       setMessages(prev => [...prev, savedMessage]);
     });
 
+    socketService.onArticleDeleted((data) => {
+      const deletedMessage: Message = {
+        id: Date.now().toString(),
+        text: `SYSTEM: Article "${data.filename}" ${data.success ? 'deleted successfully' : 'deletion failed'}.`,
+        sender: Sender.Bot,
+      };
+      setMessages(prev => [...prev, deletedMessage]);
+    });
+
+    socketService.onArticleContent((data) => {
+      const articleMessage: Message = {
+        id: Date.now().toString(),
+        text: `=== ARTICLE: ${data.filename} ===\n\n${data.content}`,
+        sender: Sender.Bot,
+      };
+      setMessages(prev => [...prev, articleMessage]);
+    });
+
     // Connect to server
     connectToServer();
 
@@ -142,13 +159,10 @@ const ChatWindow: React.FC = () => {
 
     if (filename && filename.trim()) {
       try {
-        await apiService.saveArticle(filename.trim(), lastBotMessage.text);
-        const confirmationMessage: Message = {
-          id: (Date.now() + 2).toString(),
-          text: `SYSTEM: Article saved to server as "${filename.trim()}".`,
-          sender: Sender.Bot,
-        };
-        setMessages(prev => [...prev, confirmationMessage]);
+        // Отправляем запрос на сервер для сохранения статьи
+        const saveMessage = `Please save the following content as an article with filename "${filename.trim()}":\n\n${lastBotMessage.text}`;
+        socketService.sendMessage(saveMessage);
+        setIsLoading(true);
       } catch (error) {
         const errorMessage: Message = {
           id: (Date.now() + 3).toString(),
@@ -162,13 +176,7 @@ const ChatWindow: React.FC = () => {
 
   const handleSelectArticle = useCallback(async (filename: string) => {
     try {
-      const content = await apiService.getArticle(filename);
-      const articleMessage: Message = {
-        id: Date.now().toString(),
-        text: `=== ARTICLE: ${filename} ===\n\n${content}`,
-        sender: Sender.Bot,
-      };
-      setMessages(prev => [...prev, articleMessage]);
+      socketService.getArticle(filename);
       setIsReadModalOpen(false);
     } catch (error) {
       const errorMessage: Message = {
@@ -184,13 +192,7 @@ const ChatWindow: React.FC = () => {
     const filename = window.prompt("Enter the filename to delete:");
     if (filename && filename.trim()) {
       try {
-        await apiService.deleteArticle(filename.trim());
-        const confirmationMessage: Message = {
-          id: Date.now().toString(),
-          text: `SYSTEM: Article "${filename.trim()}" deleted successfully.`,
-          sender: Sender.Bot,
-        };
-        setMessages(prev => [...prev, confirmationMessage]);
+        socketService.deleteArticle(filename.trim());
       } catch (error) {
         const errorMessage: Message = {
           id: (Date.now() + 1).toString(),
@@ -204,8 +206,7 @@ const ChatWindow: React.FC = () => {
 
   const handleReadFile = useCallback(async () => {
     try {
-      const articlesList = await apiService.getArticles();
-      setArticles(articlesList);
+      socketService.getArticles();
       setIsReadModalOpen(true);
     } catch (error) {
       const errorMessage: Message = {
@@ -244,3 +245,4 @@ const ChatWindow: React.FC = () => {
 };
 
 export default ChatWindow;
+

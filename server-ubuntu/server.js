@@ -14,12 +14,13 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: ["http://localhost:3002", "http://localhost:5173", "http://127.0.0.1:3002", "http://127.0.0.1:5173"],
     methods: ["GET", "POST"]
   }
 });
 
 const PORT = process.env.PORT || 3001;
+const HOST = process.env.HOST || '0.0.0.0';
 
 // Middleware
 app.use(cors());
@@ -133,6 +134,12 @@ io.on('connection', (socket) => {
     const chatSession = createChatSession();
     chatSessions.set(socket.id, chatSession);
     logger.info('Chat session created for client', { socketId: socket.id });
+    
+    // Отправляем подтверждение подключения
+    socket.emit('connection_established', { 
+      message: 'Connected to IPA Server',
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
     logger.error('Error creating chat session:', error);
     socket.emit('error', { message: 'Failed to create chat session' });
@@ -156,10 +163,19 @@ io.on('connection', (socket) => {
         hasImage: !!imageFile 
       });
 
+      // Отправляем сообщение в Gemini и получаем ответ
       const response = await sendMessage(chatSession, message, imageFile);
       
       // Отправляем ответ клиенту
-      socket.emit('ai_response', response);
+      socket.emit('ai_response', {
+        id: Date.now().toString(),
+        text: response.responseText || response.text,
+        sender: 'bot',
+        timestamp: new Date().toISOString(),
+        action: response.action,
+        filename: response.filename,
+        content: response.content
+      });
 
       // Обрабатываем специальные действия
       if (response.action === 'CREATE_ARTICLE' || response.action === 'UPDATE_ARTICLE') {
@@ -168,7 +184,8 @@ io.on('connection', (socket) => {
             await db.saveArticle(response.filename, response.content);
             socket.emit('article_saved', { 
               filename: response.filename, 
-              message: 'Article saved successfully' 
+              message: 'Article saved successfully',
+              timestamp: new Date().toISOString()
             });
             logger.info('Article saved via socket', { filename: response.filename });
           } catch (error) {
@@ -181,7 +198,10 @@ io.on('connection', (socket) => {
       if (response.action === 'LIST_ARTICLES') {
         try {
           const articles = await db.listArticles();
-          socket.emit('articles_list', articles);
+          socket.emit('articles_list', {
+            articles,
+            timestamp: new Date().toISOString()
+          });
           logger.info('Articles list sent via socket', { count: articles.length });
         } catch (error) {
           logger.error('Error listing articles via socket:', error);
@@ -195,6 +215,60 @@ io.on('connection', (socket) => {
         message: 'Failed to process message',
         details: error.message 
       });
+    }
+  });
+
+  // Обработка запроса списка статей
+  socket.on('get_articles', async () => {
+    try {
+      const articles = await db.listArticles();
+      socket.emit('articles_list', {
+        articles,
+        timestamp: new Date().toISOString()
+      });
+      logger.info('Articles list requested via socket', { count: articles.length });
+    } catch (error) {
+      logger.error('Error listing articles via socket:', error);
+      socket.emit('error', { message: 'Failed to list articles' });
+    }
+  });
+
+  // Обработка запроса статьи
+  socket.on('get_article', async (data) => {
+    try {
+      const { filename } = data;
+      const content = await db.getArticle(filename);
+      
+      if (content === null) {
+        socket.emit('error', { message: 'Article not found' });
+      } else {
+        socket.emit('article_content', {
+          filename,
+          content,
+          timestamp: new Date().toISOString()
+        });
+      }
+    } catch (error) {
+      logger.error('Error getting article via socket:', error);
+      socket.emit('error', { message: 'Failed to get article' });
+    }
+  });
+
+  // Обработка удаления статьи
+  socket.on('delete_article', async (data) => {
+    try {
+      const { filename } = data;
+      const result = await db.deleteArticle(filename);
+      socket.emit('article_deleted', {
+        filename,
+        success: result.success,
+        message: result.message,
+        timestamp: new Date().toISOString()
+      });
+      logger.info('Article deleted via socket', { filename });
+    } catch (error) {
+      logger.error('Error deleting article via socket:', error);
+      socket.emit('error', { message: 'Failed to delete article' });
     }
   });
 
@@ -226,11 +300,23 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // Запуск сервера
-server.listen(PORT, () => {
-  logger.info(`IPA Server running on port ${PORT}`);
+server.listen(PORT, HOST, () => {
+  logger.info(`IPA Server running on ${HOST}:${PORT}`);
   logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
   logger.info(`Database directory: ./databases`);
   logger.info(`Logs directory: ./logs`);
+  logger.info(`Gemini API Key: ${process.env.GEMINI_API_KEY ? 'Configured' : 'NOT CONFIGURED'}`);
+});
+
+// Обработка ошибок при запуске сервера
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    logger.error(`Port ${PORT} is already in use. Please try a different port.`);
+  } else {
+    logger.error('Server error:', error);
+  }
+  process.exit(1);
 });
 
 export default app;
+

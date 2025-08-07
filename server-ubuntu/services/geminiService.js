@@ -2,8 +2,9 @@ import { GoogleGenAI } from '@google/genai';
 import logger from '../config/logger.js';
 
 // Проверяем наличие API ключа
-if (!process.env.GEMINI_API_KEY) {
-  logger.error('GEMINI_API_KEY environment variable not set.');
+if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'your_gemini_api_key_here') {
+  logger.error('GEMINI_API_KEY environment variable not set or is default value.');
+  logger.error('Please set a valid Gemini API key in the .env file.');
   process.exit(1);
 }
 
@@ -138,10 +139,11 @@ export const sendMessage = async (chat, message, imageFile = null) => {
 
     let response;
     if (imageFile) {
+      // Обрабатываем изображение из base64 данных
       const imagePart = {
         inlineData: {
-          data: imageFile.toString('base64'),
-          mimeType: 'image/jpeg'
+          data: imageFile.data,
+          mimeType: imageFile.mimeType || 'image/jpeg'
         }
       };
       const textPart = { text: message };
@@ -172,3 +174,4 @@ export const sendMessage = async (chat, message, imageFile = null) => {
     throw error;
   }
 };
+

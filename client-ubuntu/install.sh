@@ -236,3 +236,4 @@ echo
 print_status "Client will connect to: $(node -e "const c=require('./config.json'); console.log(c.server.protocol+'://'+c.server.host+':'+c.server.port)")"
 echo
 print_success "Installation script completed!"
+

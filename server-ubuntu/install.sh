@@ -201,3 +201,4 @@ print_status "Server will be available at: http://$(hostname -I | awk '{print $1
 print_status "API health check: http://$(hostname -I | awk '{print $1}'):3001/api/health"
 echo
 print_success "Installation script completed!"
+

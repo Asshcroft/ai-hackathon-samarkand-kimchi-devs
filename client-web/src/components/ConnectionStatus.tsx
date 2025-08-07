@@ -24,3 +24,4 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ isConnected, error 
 };
 
 export default ConnectionStatus;
+

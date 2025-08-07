@@ -8,6 +8,8 @@ class SocketService {
   private connectionHandlers: ((status: ConnectionStatus) => void)[] = [];
   private articleHandlers: ((articles: string[]) => void)[] = [];
   private articleSavedHandlers: ((data: { filename: string; message: string }) => void)[] = [];
+  private articleContentHandlers: ((data: { filename: string; content: string }) => void)[] = [];
+  private articleDeletedHandlers: ((data: { filename: string; success: boolean; message: string }) => void)[] = [];
 
   connect(serverUrl: string = 'http://localhost:3001'): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -19,6 +21,11 @@ class SocketService {
 
         this.socket.on('connect', () => {
           console.log('Connected to server');
+          this.notifyConnectionHandlers({ connected: true });
+        });
+
+        this.socket.on('connection_established', (data: { message: string; timestamp: string }) => {
+          console.log('Connection established:', data.message);
           this.notifyConnectionHandlers({ connected: true });
           resolve();
         });
@@ -34,25 +41,39 @@ class SocketService {
           reject(error);
         });
 
-        this.socket.on('ai_response', (response: ServerResponse) => {
+        this.socket.on('ai_response', (response: any) => {
+          console.log('Received AI response:', response);
           const message: Message = {
-            id: Date.now().toString(),
+            id: response.id || Date.now().toString(),
             text: response.text,
             sender: 'bot' as any,
-            timestamp: new Date(),
+            timestamp: new Date(response.timestamp || Date.now()),
           };
           this.notifyMessageHandlers(message);
         });
 
-        this.socket.on('articles_list', (articles: string[]) => {
-          this.notifyArticleHandlers(articles);
+        this.socket.on('articles_list', (data: { articles: string[]; timestamp: string }) => {
+          console.log('Received articles list:', data.articles);
+          this.notifyArticleHandlers(data.articles);
         });
 
-        this.socket.on('article_saved', (data: { filename: string; message: string }) => {
+        this.socket.on('article_saved', (data: { filename: string; message: string; timestamp: string }) => {
+          console.log('Article saved:', data);
           this.notifyArticleSavedHandlers(data);
         });
 
-        this.socket.on('error', (data: { message: string }) => {
+        this.socket.on('article_content', (data: { filename: string; content: string; timestamp: string }) => {
+          console.log('Article content received:', data.filename);
+          this.notifyArticleContentHandlers(data);
+        });
+
+        this.socket.on('article_deleted', (data: { filename: string; success: boolean; message: string; timestamp: string }) => {
+          console.log('Article deleted:', data);
+          this.notifyArticleDeletedHandlers(data);
+        });
+
+        this.socket.on('error', (data: { message: string; details?: string }) => {
+          console.error('Server error:', data);
           this.notifyErrorHandlers(data.message);
         });
 
@@ -93,6 +114,27 @@ class SocketService {
     }
   }
 
+  getArticles(): void {
+    if (!this.socket || !this.socket.connected) {
+      throw new Error('Not connected to server');
+    }
+    this.socket.emit('get_articles');
+  }
+
+  getArticle(filename: string): void {
+    if (!this.socket || !this.socket.connected) {
+      throw new Error('Not connected to server');
+    }
+    this.socket.emit('get_article', { filename });
+  }
+
+  deleteArticle(filename: string): void {
+    if (!this.socket || !this.socket.connected) {
+      throw new Error('Not connected to server');
+    }
+    this.socket.emit('delete_article', { filename });
+  }
+
   onMessage(handler: (message: Message) => void): void {
     this.messageHandlers.push(handler);
   }
@@ -111,6 +153,14 @@ class SocketService {
 
   onArticleSaved(handler: (data: { filename: string; message: string }) => void): void {
     this.articleSavedHandlers.push(handler);
+  }
+
+  onArticleContent(handler: (data: { filename: string; content: string }) => void): void {
+    this.articleContentHandlers.push(handler);
+  }
+
+  onArticleDeleted(handler: (data: { filename: string; success: boolean; message: string }) => void): void {
+    this.articleDeletedHandlers.push(handler);
   }
 
   private notifyMessageHandlers(message: Message): void {
@@ -133,9 +183,18 @@ class SocketService {
     this.articleSavedHandlers.forEach(handler => handler(data));
   }
 
+  private notifyArticleContentHandlers(data: { filename: string; content: string }): void {
+    this.articleContentHandlers.forEach(handler => handler(data));
+  }
+
+  private notifyArticleDeletedHandlers(data: { filename: string; success: boolean; message: string }): void {
+    this.articleDeletedHandlers.forEach(handler => handler(data));
+  }
+
   isConnected(): boolean {
     return this.socket?.connected || false;
   }
 }
 
 export const socketService = new SocketService();
+
