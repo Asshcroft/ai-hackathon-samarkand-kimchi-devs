@@ -35,8 +35,20 @@ This section contains everything needed to run the app locally during developmen
 - **Math and Engineering Tools**  
   Solve mathematical equations, generate graphs, and design circuit diagrams.
 
-- **Research Data Management**  
-  Automatically stores research data in a personal data center for later access.
+- **Advanced Database Management**  
+  - Save articles in Markdown format (.md) with automatic filename generation
+  - AI automatically creates and saves articles when generating content
+  - Full database browser with search, upload, and download capabilities
+  - Article editing, deletion, and full-text search across all content
+  - Manual file management through intuitive UI
+
+- **AI-Powered Article Management**  
+  - **Create**: "Write an article about [topic]" - AI displays content and auto-saves
+  - **Read**: "Read the article about [topic]" or "Show me [filename.md]"
+  - **Update**: "Update the article about [topic] with [new info]"
+  - **Delete**: "Delete the article [filename.md]"
+  - **Search**: "Search for articles about [topic]"
+  - **List**: "Show me all articles" or "List database"
 
 - **Automated Web Search**  
   Analyzes images, identifies relevant information, and opens matching web pages using DuckDuckGo.
@@ -46,6 +58,14 @@ This section contains everything needed to run the app locally during developmen
 
 - **Research Assistance**  
   Assists users throughout their research process to increase productivity and streamline workflows.
+
+### Database Access
+Click the **"📚 База данных"** button in the header to:
+- Browse all saved articles with preview
+- Search articles by content
+- Upload .md files from your computer  
+- Download articles to your device
+- Manage and organize your knowledge base
 
 > IPA is powered by the **Gemini API**. In future PSD deployments, it will run completely offline to ensure privacy, reliability, and accessibility in any environment.
 

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import type { Message } from '../types';
 import { Sender } from '../types';
 import MessageList from './MessageList';
@@ -26,7 +26,11 @@ const fileToGenerativePart = async (file: File): Promise<Part> => {
 };
 
 
-const ChatWindow: React.FC = () => {
+export interface ChatWindowRef {
+  handleArticleSelect: (filename: string, content: string) => void;
+}
+
+const ChatWindow = forwardRef<ChatWindowRef>((props, ref) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'initial-message',
@@ -126,6 +130,25 @@ const ChatWindow: React.FC = () => {
     }
   }, [isTtsEnabled]);
 
+  const handleArticleSelectFromDatabase = useCallback((filename: string, content: string) => {
+    const text = `--- LOADED FROM DATABASE: ${filename} ---\n\n${content}\n\n--- END OF FILE ---`;
+        
+    const botMessage: Message = {
+        id: (Date.now() + 2).toString(),
+        text: text,
+        sender: Sender.Bot,
+    };
+    setMessages(prev => [...prev, botMessage]);
+
+    if (isTtsEnabled) {
+      ttsService.speak(content);
+    }
+  }, [isTtsEnabled]);
+
+  useImperativeHandle(ref, () => ({
+    handleArticleSelect: handleArticleSelectFromDatabase,
+  }));
+
 
   const handleSendMessage = useCallback(async (text: string, imageFile: File | null = null) => {
     if ((!text.trim() && !imageFile) || !chatSessionRef.current) return;
@@ -219,7 +242,58 @@ const ChatWindow: React.FC = () => {
         case 'CREATE_ARTICLE':
         case 'UPDATE_ARTICLE':
           if (actionData.filename && actionData.content) {
-            db.saveArticle(actionData.filename, actionData.content);
+            await db.saveArticle(actionData.filename, actionData.content);
+            const confirmMessage: Message = {
+              id: (Date.now() + 3).toString(),
+              text: `SYSTEM: Article "${actionData.filename}" has been saved to database.`,
+              sender: Sender.Bot,
+            };
+            setMessages(prev => [...prev, confirmMessage]);
+          }
+          break;
+        case 'DELETE_ARTICLE':
+          if (actionData.filename) {
+            const success = db.deleteArticle(actionData.filename);
+            const confirmMessage: Message = {
+              id: (Date.now() + 3).toString(),
+              text: success 
+                ? `SYSTEM: Article "${actionData.filename}" has been deleted from database.`
+                : `SYSTEM ERROR: Failed to delete article "${actionData.filename}".`,
+              sender: Sender.Bot,
+            };
+            setMessages(prev => [...prev, confirmMessage]);
+          }
+          break;
+        case 'READ_ARTICLE':
+          if (actionData.filename) {
+            const content = db.getArticle(actionData.filename);
+            const articleMessage: Message = {
+              id: (Date.now() + 3).toString(),
+              text: content 
+                ? `--- START OF FILE: ${actionData.filename} ---\n\n${content}\n\n--- END OF FILE ---`
+                : `SYSTEM ERROR: Article "${actionData.filename}" not found in database.`,
+              sender: Sender.Bot,
+            };
+            setMessages(prev => [...prev, articleMessage]);
+            if (isTtsEnabled && content) {
+              ttsService.speak(content);
+            }
+          }
+          break;
+        case 'SEARCH_ARTICLES':
+          if (actionData.searchQuery) {
+            const results = db.searchArticles(actionData.searchQuery);
+            const resultText = results.length > 0
+              ? `Search results for "${actionData.searchQuery}":\n\n` + 
+                results.map((r, i) => `${i + 1}. ${r.filename} (${r.matches} matches)`).join('\n')
+              : `No articles found matching "${actionData.searchQuery}".`;
+            
+            const searchMessage: Message = {
+              id: (Date.now() + 3).toString(),
+              text: resultText,
+              sender: Sender.Bot,
+            };
+            setMessages(prev => [...prev, searchMessage]);
           }
           break;
         case 'LIST_ARTICLES':
@@ -302,6 +376,8 @@ const ChatWindow: React.FC = () => {
       />
     </div>
   );
-};
+});
+
+ChatWindow.displayName = 'ChatWindow';
 
 export default ChatWindow;
