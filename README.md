@@ -1,95 +1,84 @@
-# IPA - Integrated Portable Assistant
+# IPA – Integrated Portable Assistant
 
-ИИ-ассистент с функциями инженерной помощи, экстренного реагирования, визуализации данных и управления статьями.
+**IPA** is an AI system designed for integration into the upcoming **Portable Scientific Device (PSD)** — a fully customizable toolkit for students, engineers, and researchers. While IPA currently runs online, future versions of the PSD will feature it as a **locally installed AI assistant**, operating on a Raspberry Pi with a Linux-based system.
 
-## Возможности
+---
 
-- **Инженерная помощь**: Генерация схем и диаграмм электронных цепей
-- **Экстренное реагирование**: Протоколы безопасности и первая помощь
-- **Визуализация данных**: Создание графиков и диаграмм
-- **Анализ изображений**: Автоматический анализ загруженных изображений
-- **Управление статьями**: Создание, чтение, редактирование и удаление статей в формате .md
-- **Text-to-Speech**: Голосовое воспроизведение ответов
-- **Погода**: Получение информации о погоде по локации
+## 🔧 Run and Deploy Your AI Studio App
 
-## Управление статьями
+This section contains everything needed to run the app locally during development.
 
-### Создание статей
-- Попросите ИИ создать статью: "Создай статью о первой помощи при ожогах"
-- ИИ напишет статью в диалоге и автоматически сохранит её в файл .md
-- Статьи сохраняются в папку `./database/`
+### Prerequisites
+- [Node.js](https://nodejs.org)
 
-### Работа со статьями
-- **Чтение**: Нажмите кнопку "Read file" для просмотра списка статей
-- **Сохранение**: Нажмите кнопку "Save" для сохранения последнего ответа ИИ
-- **Удаление**: Нажмите кнопку "Delete" для удаления статьи по имени файла
+### Steps to Run Locally
 
-### Формат файлов
-- Все статьи сохраняются в формате Markdown (.md)
-- Автоматическое добавление расширения .md к именам файлов
-- Поддержка как файловой системы, так и localStorage
-
-## Установка и запуск
-
-**Требования:** Node.js
-
-1. Установите зависимости:
+1. Install dependencies:
    ```bash
    npm install
    ```
 
-2. Создайте файл `.env.local` и добавьте ваш API ключ Gemini:
-   ```
-   GEMINI_API_KEY=your_api_key_here
-   ```
-
-3. Запустите приложение:
-
-   **Для разработки:**
+2. Start the development server:
    ```bash
    npm run dev
    ```
 
-   **Для продакшена:**
-   ```bash
-   npm run start
+3. Open your browser and navigate to:
+   ```
+   http://localhost:5173
    ```
 
-   Приложение будет доступно по адресу: http://localhost:3001
+---
 
-## Структура проекта
+## ✨ Key Features
 
-```
-AI/
-├── components/          # React компоненты
-├── services/           # Сервисы (ИИ, БД, TTS)
-├── database/           # Папка для статей .md
-├── App.tsx            # Главный компонент
-└── README.md          # Документация
-```
+- **Math and Engineering Tools**  
+  Solve mathematical equations, generate graphs, and design circuit diagrams.
 
-## Технические детали
+- **Advanced Database Management**  
+  - Save articles in Markdown format (.md) with automatic filename generation
+  - AI automatically creates and saves articles when generating content
+  - Full database browser with search, upload, and download capabilities
+  - Article editing, deletion, and full-text search across all content
+  - Manual file management through intuitive UI
 
-- **Frontend**: React + TypeScript + Vite
-- **Backend**: Express.js сервер для работы с файлами
-- **ИИ**: Google Gemini API
-- **Хранение**: Файловая система (.md файлы) + localStorage
-- **Стили**: Tailwind CSS
-- **Аудио**: Web Audio API для TTS
+- **AI-Powered Article Management**  
+  - **Create**: "Write an article about [topic]" - AI displays content and auto-saves
+  - **Read**: "Read the article about [topic]" or "Show me [filename.md]"
+  - **Update**: "Update the article about [topic] with [new info]"
+  - **Delete**: "Delete the article [filename.md]"
+  - **Search**: "Search for articles about [topic]"
+  - **List**: "Show me all articles" or "List database"
 
-## API Endpoints
+- **Automated Web Search**  
+  Analyzes images, identifies relevant information, and opens matching web pages using DuckDuckGo.
 
-Сервер предоставляет следующие API endpoints:
+- **Multilingual Text-to-Speech**  
+  Converts text into speech in multiple languages to improve accessibility and support multitasking.
 
-- `GET /api/articles` - Получить список всех статей
-- `GET /api/articles/:filename` - Получить содержимое статьи
-- `POST /api/articles` - Создать новую статью
-- `PUT /api/articles/:filename` - Обновить существующую статью
-- `DELETE /api/articles/:filename` - Удалить статью
+- **Research Assistance**  
+  Assists users throughout their research process to increase productivity and streamline workflows.
 
-## Архитектура
+### Database Access
+Click the **"📚 База данных"** button in the header to:
+- Browse all saved articles with preview
+- Search articles by content
+- Upload .md files from your computer  
+- Download articles to your device
+- Manage and organize your knowledge base
 
-Проект использует клиент-серверную архитектуру:
-- **Клиент**: React приложение с Vite
-- **Сервер**: Express.js API для работы с файлами
-- **Хранение**: Файлы .md в папке `./database/`
+> IPA is powered by the **Gemini API**. In future PSD deployments, it will run completely offline to ensure privacy, reliability, and accessibility in any environment.
+
+---
+
+## 🧰 PSD v1 – Coming Soon
+
+The **Portable Scientific Device (PSD)** is currently in development. It will be a modular, Linux-based toolkit built on Raspberry Pi. Designed for flexibility and customization, PSD will support a wide range of educational and research applications. IPA will be a central component of this system.
+
+---
+
+## 👥 Team – Kimchi-devs
+
+- **Akimjonov Azimjon** – Team Lead / Programmer  
+- **Danaev Alisher** – Hardware Engineer  
+- **Usmonov Saidazimxon** – Product Designer

@@ -19,7 +19,10 @@ const responseSchema = {
         'CHAT',
         'CREATE_ARTICLE',
         'UPDATE_ARTICLE',
+        'DELETE_ARTICLE',
+        'READ_ARTICLE',
         'LIST_ARTICLES',
+        'SEARCH_ARTICLES',
         'OPEN_BROWSER',
         'ENABLE_TTS',
         'DISABLE_TTS',
@@ -35,11 +38,15 @@ const responseSchema = {
     },
     filename: {
       type: Type.STRING,
-      description: 'The filename for an article being created or updated (e.g., "first_aid_burns.md").'
+      description: 'The filename for an article being created, updated, deleted, or read (e.g., "first_aid_burns.md").'
     },
     content: {
       type: Type.STRING,
       description: 'The full markdown content for an article being created or updated.'
+    },
+    searchQuery: {
+      type: Type.STRING,
+      description: 'The search query for finding articles by content. Used with SEARCH_ARTICLES action.'
     },
     url: {
         type: Type.STRING,
@@ -105,16 +112,22 @@ General capabilities:
     - If the image contains something else, describe it to the best of your ability.
   The user's text prompt provides additional context. If the prompt is empty or vague (e.g., "what is this?"), proceed with your autonomous analysis. If the prompt asks a specific question, answer that question in relation to the image. For all multimodal responses, use the 'CHAT' action to provide a direct, comprehensive textual answer.
 - **Weather Information**: When asked for the weather or temperature in a specific location, use the \`GET_WEATHER\` action and provide the location name. Acknowledge the request in your responseText, for example: "One moment while I check the weather for [location]". Do not attempt to use the browser for this.
-- **Article Management**: 
-    - When a user asks you to "create an article", "write an article", "create a new article", "add new data", or similar requests, you should:
-        1. First provide a comprehensive response in the chat (responseText) with the article content
-        2. Then automatically save it as a .md file using the CREATE_ARTICLE action
-        3. Use descriptive filenames like "first_aid_burns.md", "voltage_divider_circuit.md", "emergency_protocols.md"
-    - Save useful information (circuits, instructions, protocols) into a local database using CREATE_ARTICLE or UPDATE_ARTICLE
-    - You can also list articles using LIST_ARTICLES action
-    - Always use the CREATE_ARTICLE action when creating new content that should be saved
+- **Article Management**: You have comprehensive database capabilities:
+  - CREATE_ARTICLE: When creating new articles, ALWAYS show the content to the user first in responseText, then automatically save it. Use descriptive filenames.
+  - UPDATE_ARTICLE: Modify existing articles. Show the updated content in responseText.
+  - DELETE_ARTICLE: Remove articles from database. Confirm the action in responseText.
+  - READ_ARTICLE: Read and display specific articles.
+  - LIST_ARTICLES: Show all available articles.
+  - SEARCH_ARTICLES: Find articles by content using searchQuery parameter.
+  When user asks to save, create, edit, or delete articles, use the appropriate action. For creating new articles, first display the content in your response, then save it automatically.
 - **Browser Actions**: Use the \`OPEN_BROWSER\` action to provide links to authoritative sources like the Red Cross, national safety councils, or component datasheets. Do not use it for general web searches. Example: "Here is a guide from the Red Cross: [First Aid for Burns](https://www.redcross.org/...)".
 - **Text-to-Speech (TTS)**: Respond to commands like "enable voice" ('ENABLE_TTS') or "disable voice" ('DISABLE_TTS').
+
+**IMPORTANT**: When creating new articles, ALWAYS:
+1. First display the article content in your responseText
+2. Use CREATE_ARTICLE action to save it automatically
+3. Generate appropriate filename from the title/topic
+4. Inform user that the article has been saved
 
 You are NOT a substitute for professional medical or emergency services. Your tone should be authoritative, calm, and reassuring. Do not generate content unrelated to your primary directives.
 

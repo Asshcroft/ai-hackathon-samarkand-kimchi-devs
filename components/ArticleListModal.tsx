@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { soundService } from '../services/ttsService';
-import * as db from '../services/databaseService';
 
 interface ArticleListModalProps {
   isOpen: boolean;
@@ -10,30 +9,6 @@ interface ArticleListModalProps {
 }
 
 const ArticleListModal: React.FC<ArticleListModalProps> = ({ isOpen, onClose, onSelectArticle, articles }) => {
-  const [dynamicArticles, setDynamicArticles] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      loadArticles();
-    }
-  }, [isOpen]);
-
-  const loadArticles = async () => {
-    setIsLoading(true);
-    try {
-      const allArticles = await db.listArticlesCombined();
-      setDynamicArticles(allArticles);
-    } catch (error) {
-      console.error('Error loading articles:', error);
-      setDynamicArticles([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Use dynamic articles if available, otherwise fall back to props
-  const displayArticles = dynamicArticles.length > 0 ? dynamicArticles : articles;
   if (!isOpen) {
     return null;
   }
@@ -72,11 +47,9 @@ const ArticleListModal: React.FC<ArticleListModalProps> = ({ isOpen, onClose, on
           </button>
         </div>
         <div className="overflow-y-auto pr-2">
-          {isLoading ? (
-            <p className="text-orange-600">...LOADING ARTICLES...</p>
-          ) : displayArticles.length > 0 ? (
+          {articles.length > 0 ? (
             <ul className="space-y-2">
-              {displayArticles.map((filename) => (
+              {articles.map((filename) => (
                 <li key={filename}>
                   <button 
                     onClick={() => handleSelect(filename)}
