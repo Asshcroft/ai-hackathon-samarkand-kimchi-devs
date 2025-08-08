@@ -8,6 +8,8 @@ import { createChatSession } from '../services/geminiService';
 import * as db from '../services/databaseService';
 import { ttsService, soundService } from '../services/ttsService';
 import ArticleListModal from './ArticleListModal';
+import EngineeringToolsModal from './EngineeringToolsModal';
+import { processMathRequest } from '../services/mathService';
 import type { Chat, GenerateContentResponse, Part } from '@google/genai';
 
 
@@ -41,6 +43,7 @@ const ChatWindow = forwardRef<ChatWindowRef>((props, ref) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isReadModalOpen, setIsReadModalOpen] = useState(false);
   const [isTtsEnabled, setIsTtsEnabled] = useState(false);
+  const [isEngineeringToolsOpen, setIsEngineeringToolsOpen] = useState(false);
   const chatSessionRef = useRef<Chat | null>(null);
 
   useEffect(() => {
@@ -109,6 +112,10 @@ const ChatWindow = forwardRef<ChatWindowRef>((props, ref) => {
 
   const handleOpenReadModal = useCallback(() => {
     setIsReadModalOpen(true);
+  }, []);
+
+  const handleOpenEngineeringTools = useCallback(() => {
+    setIsEngineeringToolsOpen(true);
   }, []);
 
   const handleSelectArticle = useCallback((filename: string) => {
@@ -308,6 +315,46 @@ const ChatWindow = forwardRef<ChatWindowRef>((props, ref) => {
           setIsTtsEnabled(false);
           ttsService.cancel();
           break;
+        case 'OPEN_ENGINEERING_TOOLS':
+          setIsEngineeringToolsOpen(true);
+          break;
+        case 'LOCAL_MATH_CALCULATION':
+          if (actionData.mathExpression) {
+            const mathResult = processMathRequest(actionData.mathExpression);
+            if (mathResult) {
+              let resultText = `**Локальное вычисление:** ${mathResult.expression}\n\n`;
+              resultText += `**Результат:** ${mathResult.result}\n\n`;
+              
+              if (mathResult.steps && mathResult.steps.length > 0) {
+                resultText += `**Пошаговое решение:**\n`;
+                mathResult.steps.forEach((step, index) => {
+                  resultText += `${index + 1}. ${step}\n`;
+                });
+              }
+              
+              if (mathResult.error) {
+                resultText += `\n**Ошибка:** ${mathResult.error}`;
+              }
+              
+              const mathMessage: Message = {
+                id: (Date.now() + 3).toString(),
+                text: resultText,
+                sender: Sender.Bot,
+              };
+              setMessages(prev => [...prev, mathMessage]);
+              if (isTtsEnabled) {
+                ttsService.speak(resultText);
+              }
+            } else {
+              const errorMessage: Message = {
+                id: (Date.now() + 3).toString(),
+                text: `Не удалось обработать математическое выражение: "${actionData.mathExpression}"`,
+                sender: Sender.Bot,
+              };
+              setMessages(prev => [...prev, errorMessage]);
+            }
+          }
+          break;
         case 'OPEN_BROWSER':
           if (actionData.url) {
             window.open(actionData.url, '_blank', 'noopener,noreferrer');
@@ -364,6 +411,10 @@ const ChatWindow = forwardRef<ChatWindowRef>((props, ref) => {
         onSelectArticle={handleSelectArticle}
         articles={db.listArticles()}
       />
+      <EngineeringToolsModal
+        isOpen={isEngineeringToolsOpen}
+        onClose={() => setIsEngineeringToolsOpen(false)}
+      />
       <MessageList messages={messages} isLoading={isLoading} />
       <ChatInput 
         onSendMessage={handleSendMessage} 
@@ -373,6 +424,7 @@ const ChatWindow = forwardRef<ChatWindowRef>((props, ref) => {
         onReadFile={handleOpenReadModal}
         isTtsEnabled={isTtsEnabled}
         onToggleTts={handleToggleTts}
+        onOpenEngineeringTools={handleOpenEngineeringTools}
       />
     </div>
   );

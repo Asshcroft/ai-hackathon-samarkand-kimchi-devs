@@ -1,5 +1,6 @@
 
 import { GoogleGenAI, Chat, GenerateContentResponse, Type } from "@google/genai";
+import { processMathRequest, getAvailableFormulas, searchFormulas } from './mathService';
 
 // Ensure process.env.API_KEY is available.
 if (!process.env.API_KEY) {
@@ -28,7 +29,9 @@ const responseSchema = {
         'DISABLE_TTS',
         'GET_WEATHER',
         'GENERATE_PLOT',
-        'GENERATE_SCHEMATIC'
+        'GENERATE_SCHEMATIC',
+        'OPEN_ENGINEERING_TOOLS',
+        'LOCAL_MATH_CALCULATION'
       ],
       description: 'The primary action the assistant should take.'
     },
@@ -88,6 +91,10 @@ const responseSchema = {
     schematicSvg: {
       type: Type.STRING,
       description: 'A valid, complete SVG string representing a simple electronic circuit. The SVG must be well-spaced and clean. Use a wide viewBox (e.g., "0 0 300 150"), `stroke-width="1.5"`, and `font-size="8px"`. Use `currentColor` for all strokes and text fills, have a transparent background, and include labels for components (e.g., R1, D1, Vin, Vout).'
+    },
+    mathExpression: {
+      type: Type.STRING,
+      description: 'Mathematical expression or equation to be calculated locally. Used with LOCAL_MATH_CALCULATION action.'
     }
   },
   required: ['action', 'responseText']
@@ -122,6 +129,19 @@ General capabilities:
   When user asks to save, create, edit, or delete articles, use the appropriate action. For creating new articles, first display the content in your response, then save it automatically.
 - **Browser Actions**: Use the \`OPEN_BROWSER\` action to provide links to authoritative sources like the Red Cross, national safety councils, or component datasheets. Do not use it for general web searches. Example: "Here is a guide from the Red Cross: [First Aid for Burns](https://www.redcross.org/...)".
 - **Text-to-Speech (TTS)**: Respond to commands like "enable voice" ('ENABLE_TTS') or "disable voice" ('DISABLE_TTS').
+- **Local Mathematical Calculations**: For mathematical expressions, equations, and physics problems, use the 'LOCAL_MATH_CALCULATION' action instead of making API calls. This includes:
+  - Simple calculations: "2 + 3 * 4", "sin(45)", "√16"
+  - Linear equations: "2x + 3 = 7", "solve 3x - 5 = 10"
+  - Quadratic equations: "x² + 5x + 6 = 0"
+  - Physics formulas: "F = ma with m=2, a=3", "KE = ½mv² with m=1, v=5"
+  - Complex expressions: "sin(π/4) * cos(π/4)"
+  Examples: "calculate 2+3*4", "solve x²+5x+6=0", "F=ma with m=2kg, a=3m/s²"
+- **Engineering Tools**: When users ask for unit conversions, engineering formulas, or constants, use the 'OPEN_ENGINEERING_TOOLS' action. This opens a comprehensive engineering calculator with:
+  - Advanced mathematical calculator with scientific functions
+  - Unit converter for length, area, volume, weight, temperature, pressure, energy, and power
+  - Engineering formulas organized by category (mechanics, thermodynamics, electromagnetism, fluid mechanics, materials)
+  - Physical constants and engineering constants
+  Examples: "convert 100 meters to feet", "show me engineering formulas", "open calculator"
 
 **IMPORTANT**: When creating new articles, ALWAYS:
 1. First display the article content in your responseText

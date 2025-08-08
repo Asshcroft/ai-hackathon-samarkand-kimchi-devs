@@ -12,9 +12,10 @@ interface ChatInputProps {
   onReadFile: () => void;
   isTtsEnabled: boolean;
   onToggleTts: () => void;
+  onOpenEngineeringTools: () => void;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, messages, onSaveLastResponse, onReadFile, isTtsEnabled, onToggleTts }) => {
+const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, messages, onSaveLastResponse, onReadFile, isTtsEnabled, onToggleTts, onOpenEngineeringTools }) => {
   const [text, setText] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -145,16 +146,15 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, message
           <button
             onClick={() => {
               soundService.playClickSound();
-              onReadFile();
+              onOpenEngineeringTools();
             }}
             onMouseEnter={() => soundService.playHoverSound()}
-            disabled={!canRead}
-            className="p-2 rounded-md text-orange-400 hover:bg-orange-700/50 disabled:text-orange-900/80 disabled:cursor-not-allowed transition-colors text-glow"
-            title="Read file from database"
-            aria-label="Read file from database"
+            className="p-2 rounded-md text-orange-400 hover:bg-orange-700/50 transition-colors text-glow"
+            title="Open Engineering Tools"
+            aria-label="Open Engineering Tools"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+              <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
             </svg>
           </button>
           <button
